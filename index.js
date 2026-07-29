@@ -38,7 +38,7 @@ client.on('messageCreate', async (message) => {
         }
 
         // 2. Girilen metinden sadece ID rakamlarını temizle (hem etiket hem ID çalışır)
-        const cleanId = targetInput.replace(/[<@!>]/g, '');
+        const cleanId = targetInput.replace(/[<@>]/g, '');
 
         try {
             // Sunucudan kullanıcıyı ID ile çek (önce önbelleğe, yoksa sunucuya sorar)
