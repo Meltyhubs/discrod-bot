@@ -1,105 +1,74 @@
-const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
-const express = require('express');
+const { Client, GatewayIntentBits } = require('discord.js');
 
-// --- 1. RENDER 7/24 UYKU ENGELLEYİCİ SUNUCU ---
-const app = express();
-const PORT = process.env.PORT || 3000;
-app.get('/', (req, res) => res.send('Bot 7/24 Aktif!'));
-app.listen(PORT, () => console.log(`[HTTP] Sunucu ${PORT} portunda dinleniyor.`));
-
-// --- 2. DISCORD CLIENT KURULUMU ---
+// Botun ihtiyaç duyduğu izinler (Intents)
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.MessageContent
     ]
 });
 
-// --- 3. AYARLAR VE YETKİLİ ROL LİSTESİ ---
-const AYARLAR = {
-    PREFIX: '.hrr',
-    UNREGISTERED_ROLE: 'Kayıtsız', // Kayıtsız rolünün tam adı
-    MEMBER_ROLE: 'Member',          // Verilecek yeni rolün tam adı
-    AUTHORIZED_ROLES: [
-        'HRR', 'FOUNDER', 'The Hrr', 'Owner', 
-        'Rigel of Hrr', 'Vespera of Hrr', 'King', 
-        'Revoir of Hrr', 'Satan of Hrr', 'Diamente of Hrr', 'Ceo'
-    ]
-};
+// --- AYARLAR ---
+const PREFIX = '.'; // Komut ön takısı
+const KAYITLI_ROL_ID = 'VERILECEK_ROL_ID_BURAYA'; // Verilecek rolün ID'si
+const KAYITSIZ_ROL_ID = 'ALINACAK_ROL_ID_BURAYA'; // Varsa alınacak kayıtsız rolünün ID'si (Yoksa silin)
 
-client.on('ready', () => {
-    console.log(`[BOT] ${client.user.tag} olarak giriş yapıldı!`);
+client.on('clientReady', () => {
+    console.log(`[BOT] ${client.user.tag} olarak başarıyla giriş yapıldı!`);
 });
 
 client.on('messageCreate', async (message) => {
-    // Botların mesajlarını ve prefix ile başlamayan mesajları yoksay
-    if (message.author.bot || !message.content.startsWith(AYARLAR.PREFIX)) return;
+    // Bot mesajlarını ve prefix ile başlamayan mesajları yok say
+    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
 
-    // --- YETKİ KONTROLÜ ---
-    const isAdministrator = message.member.permissions.has(PermissionFlagsBits.Administrator);
-    const hasAuthorizedRole = message.member.roles.cache.some(role => 
-        AYARLAR.AUTHORIZED_ROLES.includes(role.name)
-    );
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
 
-    if (!isAdministrator && !hasAuthorizedRole) {
-        return message.channel.send('❌ **Hata:** Bu komutu kullanmak için yetkiniz bulunmuyor!').then(msg => {
-            setTimeout(() => msg.delete().catch(() => {}), 5000);
-        });
-    }
+    // Komut: .hrr <ID veya Etiket> <İsim> <Yaş>
+    if (command === 'hrr') {
+        const targetInput = args[0];
+        const isim = args[1];
+        const yas = args[2];
 
-    // Mesajı gönderen kişinin komut mesajını sil
-    message.delete().catch(err => console.log('Mesaj silinemedi:', err));
-
-    // --- ARGÜMANLARI AYRIŞTIRMA (.hrr @Kullanıcı İsim Yaş) ---
-    const args = message.content.slice(AYARLAR.PREFIX.length).trim().split(/ +/);
-    const targetMember = message.mentions.members.first();
-
-    if (!targetMember) {
-        return message.channel.send('❌ **Hata:** Lütfen kayıt edilecek bir kullanıcıyı etiketleyin! Örnek: `.hrr @Kullanıcı Süleyman 26`').then(msg => {
-            setTimeout(() => msg.delete().catch(() => {}), 5000);
-        });
-    }
-
-    // Etiket haricindeki diğer kelimeleri al (İsim ve Yaş)
-    const nameAgeArgs = args.filter(arg => !arg.includes(targetMember.id));
-    
-    if (nameAgeArgs.length < 2) {
-        return message.channel.send('❌ **Hata:** Lütfen isim ve yaş bilgilerini eksiksiz girin! Örnek: `.hrr @Kullanıcı Süleyman 26`').then(msg => {
-            setTimeout(() => msg.delete().catch(() => {}), 5000);
-        });
-    }
-
-    const age = nameAgeArgs.pop(); // Son argümanı yaş olarak al
-    const name = nameAgeArgs.join(' '); // Geri kalanı isim yap
-    const newNickname = `${name} | ${age}`;
-
-    try {
-        // 1. İsim Değiştirme
-        await targetMember.setNickname(newNickname);
-
-        // 2. Kayıtsız Rolünü Kaldır
-        const unregisteredRole = message.guild.roles.cache.find(r => r.name === AYARLAR.UNREGISTERED_ROLE);
-        if (unregisteredRole && targetMember.roles.cache.has(unregisteredRole.id)) {
-            await targetMember.roles.remove(unregisteredRole);
+        // 1. Eksik parametre kontrolü
+        if (!targetInput || !isim || !yas) {
+            return message.reply("❌ **Hatalı Kullanım!**\nDoğru format: `.hrr <ID veya Etiket> <İsim> <Yaş>`\nÖrnek: `.hrr 453982019485761536 Ahmet 22`");
         }
 
-        // 3. Member Rolünü Ver
-        const memberRole = message.guild.roles.cache.find(r => r.name === AYARLAR.MEMBER_ROLE);
-        if (memberRole) {
-            await targetMember.roles.add(memberRole);
-        } else {
-            message.channel.send(`⚠️ **Uyarı:** Sunucuda **${AYARLAR.MEMBER_ROLE}** adında bir rol bulunamadı, roller güncellenemedi.`);
+        // 2. Girilen metinden sadece ID rakamlarını temizle (hem etiket hem ID çalışır)
+        const cleanId = targetInput.replace(/[<@!>]/g, '');
+
+        try {
+            // Sunucudan kullanıcıyı ID ile çek (önce önbelleğe, yoksa sunucuya sorar)
+            const member = message.guild.members.cache.get(cleanId) || await message.guild.members.fetch(cleanId).catch(() => null);
+
+            if (!member) {
+                return message.reply("❌ Belirtilen ID veya etikete sahip kullanıcı bu sunucuda bulunamadı!");
+            }
+
+            // 3. İsim Değiştirme (İsim | Yaş)
+            const yeniIsim = `${isim} | ${yas}`;
+            await member.setNickname(yeniIsim);
+
+            // 4. Rol Verme / Alma İşlemleri
+            if (KAYITLI_ROL_ID && KAYITLI_ROL_ID !== 'VERILECEK_ROL_ID_BURAYA') {
+                await member.roles.add(KAYITLI_ROL_ID);
+            }
+            if (KAYITSIZ_ROL_ID && KAYITSIZ_ROL_ID !== 'ALINACAK_ROL_ID_BURAYA') {
+                await member.roles.remove(KAYITSIZ_ROL_ID);
+            }
+
+            // 5. Başarı Mesajı
+            return message.channel.send(`✅ ${member} kişisinin adı **${yeniIsim}** olarak güncellendi ve kayıt rolü verildi!`);
+
+        } catch (error) {
+            console.error("Kayıt sırasında hata:", error);
+            return message.reply("⚠️ Kullanıcının adı veya rolü değiştirilirken bir hata oluştu!\n**Kontrol et:** Botun rolü, değiştirmek istediğin üyenin/rolün üstünde mi?");
         }
-
-        // Başarı Mesajı
-        message.channel.send(`✅ **Başarılı:** ${targetMember} kullanıcısının ismi \`${newNickname}\` olarak güncellendi ve kaydı tamamlandı.`);
-
-    } catch (error) {
-        console.error(error);
-        message.channel.send('❌ **Hata:** İşlem gerçekleştirilirken bir sorun oluştu! Botun yetkilerini ve rol sıralamasını kontrol edin.');
     }
 });
 
+// Botu çalıştır (Token'ı Render üzerindeki Environment Variable'dan alır)
 client.login(process.env.TOKEN);
