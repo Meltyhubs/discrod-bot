@@ -12,11 +12,11 @@ const client = new Client({
 });
 
 // --- AYARLAR ---
-const KAYIT_KANAL_ID = '1520417679364853850';       // İsim yazılacak kanalın ID'si
-const KAYITLI_ROL_ID = '1520417528336355408';      // Verilecek Member rolünün ID'si
-const KAYITSIZ_ROL_ID = '1520417529451774103';   // Alınacak Kayıtsız rolünün ID'si
+const KAYIT_KANAL_ID = '1538284563254747196'; // Taşıyacağın YENİ kanalın ID'si
+const KAYITLI_ROL_ID = '1520417528336355408';       // Verilecek Member rolünün ID'si
+const KAYITSIZ_ROL_ID = '1520417529451774103';      // Alınacak Kayıtsız rolünün ID'si
 
-// ⚡ TİKE BASMA YETKİSİ OLAN YÜKSEK RÜTBELİ ROLLER (Bunlardan Herhangi Biri Basabilir)
+// ⚡ TİKE BASMA YETKİSİ OLAN YÜKSEK RÜTBELİ ROLLER
 const YETKILI_ROLLER = [
     '1520417402729271366',
     '1520417403668795524'
@@ -57,11 +57,10 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
     if (!reactorMember) return;
 
-    // Tike basan kişinin Yönetici yetkisi var mı veya Yetkili Roller listenizdeki bir role sahip mi?
+    // Yetki Kontrolü
     const isAuthorized = reactorMember.permissions.has(PermissionsBitField.Flags.Administrator) ||
         YETKILI_ROLLER.some(roleId => reactorMember.roles.cache.has(roleId));
 
-    // Yetkisi olmayan biri tike basarsa tepkisini sil
     if (!isAuthorized) {
         await reaction.users.remove(user.id).catch(() => null);
         return;
@@ -71,8 +70,6 @@ client.on('messageReactionAdd', async (reaction, user) => {
     const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
 
     if (!targetMember) return;
-    
-    // Zaten kayıt edilmişse tekrar işlem yapma
     if (KAYITLI_ROL_ID && targetMember.roles.cache.has(KAYITLI_ROL_ID)) return;
 
     const yeniIsim = reaction.message.content.trim();
@@ -82,17 +79,13 @@ client.on('messageReactionAdd', async (reaction, user) => {
         await targetMember.setNickname(yeniIsim);
 
         // Rol İşlemleri
-        if (KAYITLI_ROL_ID && KAYITLI_ROL_ID !== 'MEMBER_ROL_ID_BURAYA') {
-            await targetMember.roles.add(KAYITLI_ROL_ID);
-        }
-        if (KAYITSIZ_ROL_ID && KAYITSIZ_ROL_ID !== 'KAYITSIZ_ROL_ID_BURAYA') {
-            await targetMember.roles.remove(KAYITSIZ_ROL_ID);
-        }
+        if (KAYITLI_ROL_ID) await targetMember.roles.add(KAYITLI_ROL_ID);
+        if (KAYITSIZ_ROL_ID) await targetMember.roles.remove(KAYITSIZ_ROL_ID);
 
-        // Onaylayan Yetkiliyi Gösteren Yeşil Embed Mesajı
+        // Onay Embed Mesajı
         const embed = new EmbedBuilder()
             .setColor('#00FF00')
-            .setDescription(`<@${user.id}> Tarafından\n**İsminiz onaylandı.** İyi Roller Dileriz.`)
+            .setDescription(`<@${user.id}> Tarafından\n**İsminiz onaylandı.** Keyifli vakit geçir.`)
             .setFooter({ text: `${guild.name} | Otomatik Kayıt Sistemi` });
 
         await reaction.message.channel.send({ embeds: [embed] });
