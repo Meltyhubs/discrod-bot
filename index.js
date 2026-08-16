@@ -19,7 +19,7 @@ const client = new Client({
 });
 
 // --- AYARLAR ---
-const KAYIT_KANAL_ID = '1520417679364853850'; // Kayıt kanalının ID'si
+const KAYIT_KANAL_ID = '1538284563254747196'; // Kayıt kanalının ID'si
 const KAYITLI_ROL_ID = '1520417528336355408';       // Verilecek Member rolünün ID'si
 const KAYITSIZ_ROL_ID = '1520417529451774103';      // Alınacak Kayıtsız rolünün ID'si
 
