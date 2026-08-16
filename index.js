@@ -1,4 +1,11 @@
 const { Client, GatewayIntentBits, EmbedBuilder, Partials, PermissionsBitField } = require('discord.js');
+const http = require('http');
+
+// Render'ın zaman aşımına (Failed) düşmesini engelleyen minik HTTP sunucusu
+http.createServer((req, res) => {
+    res.write("Bot aktif ve calisiyor!");
+    res.end();
+}).listen(process.env.PORT || 3000);
 
 const client = new Client({
     intents: [
@@ -12,7 +19,7 @@ const client = new Client({
 });
 
 // --- AYARLAR ---
-const KAYIT_KANAL_ID = '1538284563254747196'; // Kayıt kanalının ID'si
+const KAYIT_KANAL_ID = '1520417679364853850'; // Kayıt kanalının ID'si
 const KAYITLI_ROL_ID = '1520417528336355408';       // Verilecek Member rolünün ID'si
 const KAYITSIZ_ROL_ID = '1520417529451774103';      // Alınacak Kayıtsız rolünün ID'si
 
@@ -51,7 +58,6 @@ client.on('messageReactionAdd', async (reaction, user) => {
         }
     }
 
-    // Sadece belirlenen kanal ve geçerli tepkileri kontrol et
     if (reaction.message.channel.id !== KAYIT_KANAL_ID) return;
     if (!['✅', '❌'].includes(reaction.emoji.name)) return;
 
@@ -77,10 +83,8 @@ client.on('messageReactionAdd', async (reaction, user) => {
     // --- ❌ REDDETME İŞLEMİ ---
     if (reaction.emoji.name === '❌') {
         try {
-            // Hatalı yazılan mesajı temizle
             await reaction.message.delete().catch(() => null);
 
-            // Reddedildi Embed Mesajı Gönder
             const redEmbed = new EmbedBuilder()
                 .setColor('#FF0000')
                 .setDescription(`<@${user.id}> Tarafından\n<@${targetUser.id}> üyesinin **isim başvurusu reddedildi.** Lütfen ismi düzgün yazarak tekrar deneyin.`)
